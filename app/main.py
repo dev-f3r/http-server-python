@@ -1,6 +1,15 @@
 # Uncomment this to pass the first stage
 import socket
-from dataclasses import dataclass
+import re
+
+
+RESPONSE_HEADERS = {
+    200: "HTTP/1.1 200 OK",
+    404: "HTTP/1.1 404 Not Found",
+}
+
+CONTENT_TYPE = "Content-Type: text/plain"
+
 
 class HTTPRequestParser:
     """
@@ -39,6 +48,50 @@ class HTTPRequestParser:
     def __repr__(self) -> str:
         return f"HTTPRequestParser(method='{self._method}', path='{self._path}')"
 
+
+def build_status_line(code, end=False):
+    """Builds the status line of an HTTP response.
+
+    Args:
+        code: The HTTP status code (e.g., 200, 404).
+        end: A boolean indicating whether to add a double CRLF (\r\n\r\n) at the end to signal the end of headers.
+
+    Returns:
+        The HTTP status line.
+    """
+    line = RESPONSE_HEADERS[code]
+
+    return line + "\r\n\r\n" if end else line
+
+
+def extract_string(path):
+    """Extracts the string within the angle brackets from a URL of the form /echo/<a-random-string>.
+
+    Args:
+        path: The URL path.
+
+    Returns:
+        The extracted string.
+    """
+    return re.search(r"\/echo\/(.+)", path).group(1)
+
+
+def build_response(lines: list[str], body):
+    """Builds a complete HTTP response.
+
+    Args:
+        lines: A list of strings representing the HTTP headers.
+        body: The response body as a string.
+
+    Returns:
+        The complete HTTP response as a string.
+    """
+    response = "\r\n".join(lines)
+    response += f"\r\n\r\n{body}\r\n\r\n"
+
+    return response
+
+
 def main():
     PORT = 4221  # ? Port number
 
@@ -54,22 +107,44 @@ def main():
     while True:
         client_socket, client_address = server_socket.accept()  # wait for client
 
-        request_data = HTTPRequestParser(client_socket.recv(1024))  # Read data, up to 1024B
+        request_data = HTTPRequestParser(
+            client_socket.recv(1024)
+        )  # Read data, up to 1024B
 
-        response = "HTTP/1.1 200 OK\r\n\r\n"  # HTTP 200 response
+        path = request_data.path  # Request's path
+        method = request_data.method  # Request's method
 
-        match (request_data.method):
+        response = ""
+
+        match (method):
             case "GET":
+                # If is just the path "/"
+                if path == "/":
+                    response = build_status_line(200, True)
+                # If the path contains the "echo" word
+                elif "echo" in path:
+                    path_string = extract_string(
+                        path
+                    )  # The random string after "/echo/"
+                    response = build_response(
+                        [
+                            build_status_line(200),  # Response status
+                            CONTENT_TYPE,  # Content type header
+                            f"Content-Length: {len(path_string)}",  # Body length
+                        ],
+                        path_string,  # Body
+                    )
                 # If the requested path is different from "/" returns 404
-                if request_data.path != "/":
-                    response = "HTTP/1.1 404 Not Found\r\n\r\n"
+                else:
+                    response = build_status_line(404, True)
             case _:
                 print(f"Unsupported method: {request_data.method}")
 
-        print("Conection info:")
+        print("Connection info:")
         print(f"\tAddress: {client_address}")
         print(f"\tData: {request_data.__repr__}")
-        print(f"\tResponse: {response}")
+        print(f"\tResponse: \n{response}")
+        print(f"\tEncoded: \n{response.encode()}")
 
         client_socket.sendall(response.encode())  # Send the response
 

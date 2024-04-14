@@ -32,10 +32,33 @@ class HTTPRequestParser:
         """
         try:
             request_data = data.decode()
-            lines = request_data.split("\r\n")
-            self._method, self._path, version = lines[0].split(" ")
+            self._lines = request_data.split("\r\n")
+
+            self._method, self._path, self._http_version = self._lines[0].split(" ")
+            self._host = self._lines[1].split(" ")[1]
+            self._user_agent = self._get_agent(self._lines[1:])
+
         except (UnicodeDecodeError, IndexError, ValueError) as e:
             raise ValueError("Invalid HTTP request data") from e
+
+    def _get_agent(self, lines) -> str:
+        """
+        Extracts the user agent string from the HTTP request headers.
+
+        Args:
+            lines (list[str]): A list of strings representing the HTTP request headers.
+
+        Returns:
+            str: The user agent string, or an empty string if not found.
+        """
+        for line in lines:
+            if "User-Agent" in line:
+                return " ".join(line.split(" ")[1:])
+        return ""
+
+    @property
+    def lines(self) -> list[str]:
+        return self._lines
 
     @property
     def method(self) -> str:
@@ -45,8 +68,9 @@ class HTTPRequestParser:
     def path(self) -> str:
         return self._path
 
-    def __repr__(self) -> str:
-        return f"HTTPRequestParser(method='{self._method}', path='{self._path}')"
+    @property
+    def user_agent(self) -> str:
+        return self._user_agent
 
 
 def build_status_line(code, end=False):
@@ -76,7 +100,7 @@ def extract_string(path):
     return re.search(r"\/echo\/(.+)", path).group(1)
 
 
-def build_response(lines: list[str], body):
+def build_response(lines: list[str], body, close_connection=True):
     """Builds a complete HTTP response.
 
     Args:
@@ -86,7 +110,11 @@ def build_response(lines: list[str], body):
     Returns:
         The complete HTTP response as a string.
     """
-    response = "\r\n".join(lines)
+    print(lines)
+    response = "\r\n".join(lines) + "\r\n"
+    response += f"Content-Length: {len(body)}"  # Content-Length header
+    # if close_connection:
+    #     response += "Connection: close\r\n"  # Close the connection if its needed.
     response += f"\r\n\r\n{body}\r\n\r\n"
 
     return response
@@ -114,8 +142,9 @@ def main():
         path = request_data.path  # Request's path
         method = request_data.method  # Request's method
 
-        response = ""
+        response = ""  # The response for the current request
 
+        # ? Build the reponse based on the following cases
         match (method):
             case "GET":
                 # If is just the path "/"
@@ -130,9 +159,18 @@ def main():
                         [
                             build_status_line(200),  # Response status
                             CONTENT_TYPE,  # Content type header
-                            f"Content-Length: {len(path_string)}",  # Body length
                         ],
                         path_string,  # Body
+                    )
+                # If the path contains the "user-agent" word
+                elif "user-agent" in path:
+                    user_agent = request_data._user_agent
+                    response = build_response(
+                        [
+                            build_status_line(200),
+                            CONTENT_TYPE,
+                        ],
+                        user_agent,  # The request's user-agent as the body
                     )
                 # If the requested path is different from "/" returns 404
                 else:
@@ -140,11 +178,13 @@ def main():
             case _:
                 print(f"Unsupported method: {request_data.method}")
 
+        # ? Prints the info about the requets
         print("Connection info:")
         print(f"\tAddress: {client_address}")
-        print(f"\tData: {request_data.__repr__}")
+        print(f"\tData:")
+        for line in request_data.lines:
+            print(f"\t-{line}")  # Print each line of the request.
         print(f"\tResponse: \n{response}")
-        print(f"\tEncoded: \n{response.encode()}")
 
         client_socket.sendall(response.encode())  # Send the response
 

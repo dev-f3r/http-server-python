@@ -179,9 +179,9 @@ async def handler(reader: StreamReader, writer: StreamWriter):
     print(f"\tResponse: \n{response}")
 
     # ? Send the response
-    writer.write(response.encode()) # Buffered the response
-    await writer.drain() # Send the response
-    writer.close() # Close connection
+    writer.write(response.encode())  # Buffered the response
+    await writer.drain()  # Send the response
+    writer.close()  # Close connection
 
 
 async def main():
@@ -192,8 +192,8 @@ async def main():
     print(f"Listening connections on port {PORT}")
 
     async with server:
-        await server.serve_forever() # Make listen multiple petitions
+        await server.serve_forever()  # Make listen multiple petitions
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) # Run main coroutine with asyncio
+    asyncio.run(main())  # Run main coroutine with asyncio

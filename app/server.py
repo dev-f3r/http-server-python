@@ -7,8 +7,9 @@ class HTTPServer:
         self.port = port
 
     def start(self):
-        # This method is now synchronous and runs the asyncio event loop
-        asyncio.run(self._run_server())
+        """Starts the HTTP server.
+        """
+        asyncio.run(self._run_server()) # Run the server using asyncio.
 
     async def _run_server(self):
         # This is the asynchronous method that sets up and runs the server

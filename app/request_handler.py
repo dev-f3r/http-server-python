@@ -1,6 +1,6 @@
 from http_parser import HTTPRequestParser
 from response_builder import ResponseBuilder
-from utils import extract_string
+from utils import extract_string, connection_info
 from constants import CONTENT_TYPE
 
 
@@ -43,11 +43,13 @@ class RequestHandler:
                             CONTENT_TYPE,
                         ],
                         path_string,
-                    ) # Builds full response.
+                    )  # Builds full response.
 
                 # If path "/user-agent", sends the length of user-agent as body.
                 elif "user-agent" in self.parser.path:
-                    status_line = self.response_builder.build_status_line(200) # Build status line.
+                    status_line = self.response_builder.build_status_line(
+                        200
+                    )  # Build status line.
 
                     response = self.response_builder.build_response(
                         [
@@ -55,7 +57,7 @@ class RequestHandler:
                             CONTENT_TYPE,
                         ],
                         self.parser.user_agent,
-                    ) # Builds full response.
+                    )  # Builds full response.
 
                 # Otherwise returns 404.
                 else:
@@ -67,16 +69,11 @@ class RequestHandler:
         return response
 
     async def send_response(self, response):
-        # TODO: Print information about the request before send a response.
         # ? Prints the info about the requets
-        print("Connection info:")
-        print(f"\tAddress: {self.writer.get_extra_info('peername')}")
-        # print(f"\tData:")
-        # for line in request_data.lines:
-        #     print(f"\t-{line}")  # Print each line of the request.
-        print(f"\tResponse: \n{response}")
+        connection_info(
+            response=response, address=self.writer.get_extra_info("peername")
+        )
 
-        
         self.writer.write(response.encode())
         await self.writer.drain()
         self.writer.close()

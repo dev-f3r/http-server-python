@@ -1,4 +1,4 @@
-from constants import RESPONSE_HEADERS, CONTENT_TYPE
+from constants import RESPONSE_HEADERS
 
 
 class ResponseBuilder:

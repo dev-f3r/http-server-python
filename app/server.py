@@ -2,9 +2,10 @@ import asyncio
 from request_handler import RequestHandler
 
 class HTTPServer:
-    def __init__(self, host, port):
+    def __init__(self, host, port, argv):
         self.host = host
         self.port = port
+        self.argv = argv
 
     def start(self):
         """Starts the HTTP server.
@@ -19,5 +20,5 @@ class HTTPServer:
             await server.serve_forever()
 
     async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        handler = RequestHandler(reader, writer)
+        handler = RequestHandler(reader, writer, self.argv)
         await handler.handle()

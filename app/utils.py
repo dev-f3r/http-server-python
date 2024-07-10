@@ -1,4 +1,6 @@
 import re
+import os
+
 
 def extract_string(path):
     """
@@ -24,3 +26,31 @@ def connection_info(response, address):
     print("Connection info:")
     print(f"\tAddress: {address}")
     print(f"\tResponse: \n{response}")
+
+
+def search_file(directoy, name):
+    """Checks if a file exists in a directory.
+
+    Args:
+        directoy (str): The directory of the file.
+        name (str): The name of the file
+
+    Returns:
+        dict: A dictionary containing the content and size of the file.
+    """
+    print(directoy, name)
+    output = {"exist": True, "content": "", "size": 0}
+    f_path = f"/{directory}/{filename}"
+
+    try:
+        with open(f_path, "r") as f:
+            f_content = f.read()
+            f_size = os.path.getsize(f_path)
+
+            output["content"] = f_content
+            output["size"] = f_size
+
+    except Exception as e:
+        output["exist"] = False
+
+    return output

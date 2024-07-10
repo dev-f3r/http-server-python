@@ -1,15 +1,16 @@
 from http_parser import HTTPRequestParser
 from response_builder import ResponseBuilder
-from utils import extract_string, connection_info
-from constants import CONTENT_TYPE
+from utils import extract_string, connection_info, search_file
+from constants import CT_APP, CT_TEXT
 
 
 class RequestHandler:
-    def __init__(self, reader, writer):
+    def __init__(self, reader, writer, argv):
         self.reader = reader
         self.writer = writer
         self.parser = None
         self.response_builder = ResponseBuilder()
+        self.argv = argv
 
     async def handle(self):
         """
@@ -53,7 +54,7 @@ class RequestHandler:
                     response = self.response_builder.build_response(
                         [
                             status_line,
-                            CONTENT_TYPE,
+                            CT_TEXT,
                         ],
                         path_string,
                     )  # Builds full response.
@@ -67,10 +68,26 @@ class RequestHandler:
                     response = self.response_builder.build_response(
                         [
                             status_line,
-                            CONTENT_TYPE,
+                            CT_TEXT,
                         ],
                         self.parser.user_agent,
                     )  # Builds full response.
+
+                elif "file" in self.parser.path:
+                    directory = self.argv[2]
+                    file_name = self.parser.path[7:]
+                    f_info = search_file(directory, file_name)
+                    if f_info["exist"]:
+                        status_line = self.response_builder.build_status_line(200)
+                        response = self.response_builder.build_response(
+                            [
+                                status_line,
+                                CT_APP,
+                            ],
+                            f_info["content"],
+                        )
+                    else:
+                        response = self.response_builder.build_status_line(404, True)
 
                 # Otherwise returns 404.
                 else:

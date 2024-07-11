@@ -28,7 +28,7 @@ def connection_info(response, address):
     print(f"\tResponse: \n{response}")
 
 
-def search_file(directoy, name):
+def search_file(directory: str, f_name: str):
     """Checks if a file exists in a directory.
 
     Args:
@@ -38,10 +38,9 @@ def search_file(directoy, name):
     Returns:
         dict: A dictionary containing the content and size of the file.
     """
-    print(directoy, name)
     output = {"exist": True, "content": "", "size": 0}
-    f_path = f"/{directory}/{filename}"
-
+    f_path = f"{directory}{f_name}.txt"
+    print(f_path)
     try:
         with open(f_path, "r") as f:
             f_content = f.read()

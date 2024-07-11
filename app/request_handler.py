@@ -75,7 +75,7 @@ class RequestHandler:
 
                 elif "file" in self.parser.path:
                     directory = self.argv[2]
-                    file_name = self.parser.path[7:]
+                    file_name = self.parser.path[6:]
                     f_info = search_file(directory, file_name)
                     if f_info["exist"]:
                         status_line = self.response_builder.build_status_line(200)
